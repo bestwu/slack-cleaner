@@ -12,6 +12,8 @@ from slack_cleaner import __version__
 from slack_cleaner.utils import Colors, Counter, TimeRange
 from slack_cleaner.args import Args
 
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 # Get and parse command line arguments
 args = Args()
@@ -162,7 +164,7 @@ def delete_message_on_channel(channel_id, message):
     counter.increase()
 
 
-def remove_files(time_range, user_id=None, types=None):
+def remove_files(time_range, user_id=None, types=None, channel=None):
     # Setup time range for query
     oldest = time_range.start_ts
     latest = time_range.end_ts
@@ -174,7 +176,7 @@ def remove_files(time_range, user_id=None, types=None):
     has_more = True
     while has_more:
         res = slack.files.list(user=user_id, ts_from=oldest, ts_to=latest,
-                               types=types, page=page).body
+                               types=types, page=page,channel=channel).body
 
         if not res['ok']:
             logger.error('Error occurred on Slack\'s API:')
@@ -314,6 +316,7 @@ def message_cleaner():
 def file_cleaner():
     _user_id = None
     _types = None
+    _channel= None
 
     if args.user_name:
         # A little bit tricky here, we use -1 to indicates `--user=*`
@@ -328,7 +331,10 @@ def file_cleaner():
     if args.types:
         _types = args.types
 
-    remove_files(time_range, _user_id, _types)
+    if args.channel_name:
+        _channel = get_channel_id_by_name(args.channel_name)
+
+    remove_files(time_range, _user_id, _types,_channel)
 
 
 def main():
